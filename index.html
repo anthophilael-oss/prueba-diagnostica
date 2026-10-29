@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protocolo de Ubicación Diagnóstica Virtual en 5 Minutos</title>
+<style>
+:root{
+  --bg:#FAFAFA; --surface:#FFFFFF; --text:#1F2933; --muted:#5B6773; --line:#D5DBE1;
+  --accent:#2F5D8C; --err:#E53935; --omi:#FB8C00; --vac:#FDD835; --cut:#1E6FD9;
+  --ok:#2E7D32; --bad:#C62828;
+}
+body.night{ --bg:#1E2530; --surface:#273140; --text:#E8ECF1; --muted:#A9B4C2; --line:#3A475A; --accent:#8FB8E8; }
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:OpenDyslexic,Verdana,Arial,sans-serif;min-height:100vh}
+button{font:inherit;cursor:pointer}
+button:focus-visible,.w:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* Barra superior */
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--line)}
+.top h1{font-size:1rem;margin:0;font-weight:700}
+.seg{display:inline-flex;border:2px solid var(--accent);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--accent);padding:10px 18px;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+body.night .seg button[aria-pressed="true"]{color:#14202E}
+.tools{display:flex;gap:10px;align-items:center}
+.ghost{border:1px solid var(--line);background:transparent;color:var(--text);padding:9px 14px;border-radius:8px}
+
+/* Modo estudiante */
+#student{max-width:900px;margin:0 auto;padding:48px 28px 80px}
+#student h2{font-size:34px;margin:0 0 28px;line-height:1.4}
+#student p{font-size:26px;line-height:1.8;margin:0 0 26px}
+
+/* Modo evaluador */
+#evaluator{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:20px;padding:20px;max-width:1400px;margin:0 auto}
+@media (max-width:900px){#evaluator{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.card h3{margin:0 0 12px;font-size:1.05rem}
+.timer{display:flex;flex-wrap:wrap;align-items:center;gap:16px}
+#startBtn{background:var(--accent);color:#fff;border:0;border-radius:12px;padding:16px 26px;font-size:1.2rem;font-weight:700}
+body.night #startBtn{color:#14202E}
+#startBtn:disabled{opacity:.55;cursor:not-allowed}
+#clock{font-size:3rem;font-weight:700;font-variant-numeric:tabular-nums;min-width:4.2ch}
+#clock.end{color:var(--err)}
+.bar{flex:1 1 160px;height:14px;border-radius:7px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:var(--accent);transition:width .25s linear}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:.85rem;color:var(--muted);margin:14px 0}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid var(--line)}
+.legend .l1::before{background:var(--surface)} .legend .l2::before{background:var(--err)}
+.legend .l3::before{background:var(--omi)} .legend .l4::before{background:var(--vac)}
+.legend .l5::before{border:2px solid var(--cut)}
+.line{display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.lnum{flex:0 0 2.6rem;color:var(--muted);font-size:.85rem}
+.words{flex:1;display:flex;flex-wrap:wrap;gap:6px 4px;font-size:1.3rem;line-height:1.8}
+.w{position:relative;border:2px solid transparent;border-radius:6px;padding:0 6px;background:transparent;color:var(--text);font:inherit;cursor:pointer;user-select:none}
+.w sup{font-size:.55em;color:var(--muted);margin-left:2px}
+.w:hover{background:rgba(127,127,127,.15)}
+.w.s1{background:var(--err);color:#fff}
+.w.s2{background:var(--omi);color:#1F2933}
+.w.s3{background:var(--vac);color:#1F2933}
+.w.s4{border-color:var(--cut);box-shadow:0 0 0 2px rgba(30,111,217,.25)}
+.w.s4::after{content:"]";color:var(--cut);font-weight:700;margin-left:2px}
+.w.s1 sup,.w.s2 sup,.w.s3 sup{color:inherit}
+.tot{flex:0 0 5.5rem;text-align:right;font-weight:700;color:var(--accent)}
+.sidebar{display:flex;flex-direction:column;gap:20px}
+.q{padding:12px 0;border-bottom:1px solid var(--line)}
+.q:last-child{border-bottom:0}
+.q p{margin:0 0 4px}.q small{color:var(--muted)}
+.qb{display:flex;gap:8px;margin-top:10px}
+.qb button{flex:1;padding:10px;border-radius:8px;border:2px solid var(--line);background:transparent;color:var(--text);font-weight:700}
+.qb .yes[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.qb .no[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:1.7rem;font-variant-numeric:tabular-nums}
+.stat span{font-size:.82rem;color:var(--muted)}
+#result{margin-top:14px;border-radius:12px;padding:16px;border:3px solid var(--line)}
+#result h4{margin:0 0 6px;font-size:1.2rem}
+#result p{margin:0}
+#result.r1{border-color:var(--err);background:rgba(229,57,53,.10)}
+#result.r2{border-color:#E0A800;background:rgba(253,216,53,.18)}
+#result.r3{border-color:var(--ok);background:rgba(46,125,50,.12)}
+.hidden{display:none !important}
+
+/* Modo automático (voz) */
+#auto{max-width:960px;margin:0 auto;padding:28px 24px 80px}
+.sc{display:none}.sc.on{display:block}
+#auto h2{font-size:30px;margin:0 0 18px}
+.ins{font-size:22px;line-height:1.7;margin:0 0 16px}
+.badge{display:inline-block;padding:8px 16px;border-radius:20px;border:2px solid var(--line);font-weight:700}
+.badge.ok{border-color:var(--ok);color:var(--ok)}.badge.bad{border-color:var(--bad);color:var(--bad)}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.go{display:block;width:100%;margin-top:12px;background:var(--accent);color:#fff;border:0;border-radius:16px;padding:22px;font-size:1.6rem;font-weight:700}
+body.night .go{color:#14202E}
+.go:disabled{opacity:.45;cursor:not-allowed}
+@media (prefers-reduced-motion:no-preference){.go:not(:disabled){animation:pulse 1.8s ease-in-out infinite}}
+@keyframes pulse{50%{transform:scale(1.025)}}
+#aClock{font-size:3rem;font-weight:700;font-variant-numeric:tabular-nums;min-width:4.2ch}
+#aText h3{font-size:32px;margin:18px 0}
+#aText p{font-size:26px;line-height:1.9;margin:0 0 22px}
+.aw{padding:0 3px;border-radius:6px;border:2px solid transparent;color:var(--text)}
+.aw.ok{background:#C6F6D5;color:#1F2933}.aw.err{background:#FED7D7;color:#1F2933}
+.aw.omi{background:#FEEBC8;color:#1F2933}.aw.vac{background:#FEF08A;color:#1F2933}
+.aw.cur{border-bottom:4px solid var(--accent)}
+.aw.cut{border-color:var(--cut)}.aw.cut::after{content:"]";color:var(--cut);font-weight:700}
+.opt{display:block;width:100%;text-align:left;margin:12px 0;padding:18px 20px;font-size:1.4rem;border-radius:12px;border:2px solid var(--line);background:var(--surface);color:var(--text)}
+.opt:hover{border-color:var(--accent)}
+#qStat{color:var(--muted);font-size:1.1rem}
+#aResult{margin:16px 0;border-radius:12px;padding:16px;border:3px solid var(--line)}
+#aResult h4{margin:0 0 6px;font-size:1.3rem}#aResult p{margin:0}
+#aResult.r1{border-color:var(--err);background:rgba(229,57,53,.10)}
+#aResult.r2{border-color:#E0A800;background:rgba(253,216,53,.18)}
+#aResult.r3{border-color:var(--ok);background:rgba(46,125,50,.12)}
+
+/* Página de bienvenida */
+#sc0{font-family:"Trebuchet MS",Verdana,sans-serif}
+.wel{background:#FFF6E3;border:3px solid #D9BC8C;border-radius:32px;padding:34px 26px 32px;max-width:1060px;margin:0 auto;text-align:center}
+.wel-main{display:flex;gap:30px;align-items:center;justify-content:center;flex-wrap:wrap}
+.fig{flex:0 1 340px;width:340px;max-width:100%}
+.fig img,.fig svg{width:100%;height:auto;aspect-ratio:1/1;display:block;object-fit:cover}
+.bubble{position:relative;flex:1 1 340px;background:#fff;border:3px solid #F2B63D;border-radius:28px;padding:22px 26px}
+.bubble::before{content:"";position:absolute;left:-17px;top:50%;width:28px;height:28px;background:#fff;border-left:3px solid #F2B63D;border-bottom:3px solid #F2B63D;transform:translateY(-50%) rotate(45deg)}
+@media (max-width:820px){.bubble::before{display:none}}
+#sc0 .bubble h2{font-size:2.4rem;margin:0 0 8px;color:#1F5A80}
+#sc0 .bubble p{font-size:1.25rem;line-height:1.55;margin:10px 0;color:#2B3A4A}
+#sc0 .bubble .sub{font-weight:700;font-size:1.4rem}
+#sc0 .bubble .can{font-weight:700;color:#1F5A80}
+.pill{margin-top:24px;background:#2C3E50;color:#fff;border:0;border-radius:999px;padding:18px 46px;font:700 1.5rem "Trebuchet MS",Verdana,sans-serif}
+.pill:hover{background:#1F2D3A}
+.wtools{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center;color:#5A4A2E;font-size:.95rem}
+.wbtn,.wtools select{background:#fff;color:#2B3A4A;border:2px solid #D9BC8C;border-radius:10px;padding:8px 12px;font:inherit}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Protocolo de Ubicación Diagnóstica · 5 min</h1>
+  <div class="seg" role="group" aria-label="Cambiar modo de vista">
+    <button id="btnStudent" aria-pressed="true">Modo Estudiante</button>
+    <button id="btnEval" aria-pressed="false">Modo Evaluador</button>
+    <button id="btnAuto" aria-pressed="false">Modo Automático (voz)</button>
+  </div>
+  <div class="tools">
+    <button class="ghost" id="btnNight" aria-pressed="false">Modo nocturno</button>
+    <button class="ghost" id="btnReset">Reiniciar Evaluación</button>
+  </div>
+</header>
+
+<!-- MODO ESTUDIANTE -->
+<main id="student">
+  <h2>El rescate del gatito</h2>
+  <p>Un día de lluvia, Lucas escuchó un maullido débil bajo el puente de madera. Se acercó despacio y vio a un pequeño gatito gris asustado y mojado.</p>
+  <p>El agua del río comenzaba a subir y el gatito no podía salir solo. Lucas intentó alcanzarlo con el brazo, pero el puente estaba muy resbaloso. Entonces, recordó que llevaba una manta gruesa en su mochila. La extendió con cuidado hasta el suelo.</p>
+  <p>El gatito caminó sobre la manta y Lucas lo cargó con suavidad. Lo llevó a casa, lo secó con una toalla y le dio leche tibia. El gatito ronroneó feliz.</p>
+</main>
+
+<!-- MODO AUTOMÁTICO (RECONOCIMIENTO DE VOZ) -->
+<main id="auto" class="hidden">
+  <section class="sc on" id="sc0">
+    <div class="wel">
+      <div class="wel-main">
+        <div class="fig">
+          <img src="bienvenida.png" alt="Ilustración de bienvenida" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <svg viewBox="0 0 200 200" style="display:none" role="img" aria-label="Libro abierto con estrellas">
+            <rect width="200" height="200" rx="10" fill="#FFE3A3"/>
+            <path d="M100 70c-20-14-48-14-68-4v82c20-10 48-10 68 4z" fill="#fff" stroke="#2C3E50" stroke-width="5" stroke-linejoin="round"/>
+            <path d="M100 70c20-14 48-14 68-4v82c-20-10-48-10-68 4z" fill="#F7F3EA" stroke="#2C3E50" stroke-width="5" stroke-linejoin="round"/>
+            <path d="M100 70v82" stroke="#2C3E50" stroke-width="5"/>
+            <path d="M50 92h36M50 108h36M114 92h36M114 108h36" stroke="#9FB6C8" stroke-width="5" stroke-linecap="round"/>
+            <path d="M100 18l7 14 15 2-11 11 3 15-14-8-14 8 3-15-11-11 15-2z" fill="#F2B63D" stroke="#2C3E50" stroke-width="3" stroke-linejoin="round"/>
+            <circle cx="34" cy="40" r="5" fill="#F2B63D"/><circle cx="168" cy="44" r="4" fill="#4FA3C7"/><circle cx="172" cy="176" r="5" fill="#F2B63D"/>
+          </svg>
+        </div>
+        <div class="bubble">
+          <h2>¡Hola, explorador! 👋</h2>
+          <p class="sub">¡Bienvenido a la estación uno y dos! 🧑‍💻</p>
+          <p>Tengo una sorpresa para ti: ¡un cuento lleno de aventuras nos espera! 📖✨</p>
+          <p>¿Quién será el personaje? ¿Qué le pasará? Vamos a descubrirlo juntos, ¡con cada lectura mejorarás!</p>
+          <p class="can">Eres capaz de grandes cosas. 🌟</p>
+        </div>
+      </div>
+      <button class="pill" id="btnInd">Indicaciones</button>
+      <div class="wtools">
+        <button class="wbtn" id="btnHear">🔊 Escuchar de nuevo</button>
+        <label>Voz: <select id="voiceSel"><option value="">Automática (la más natural)</option></select></label>
+      </div>
+    </div>
+  </section>
+
+  <section class="sc" id="sc1">
+    <h2>¡Hola! Vamos a leer juntos</h2>
+    <p class="ins"><b>Prueba de Voz:</b> «Di “Hola” para probar tu micrófono.»</p>
+    <p><span id="micStatus" class="badge">🎤 Micrófono sin probar</span></p>
+    <p class="ins"><b>Instrucción de Lectura:</b> «Lee la historia en voz alta a tu ritmo. Si te detienes en una palabra, el programa te ayudará pronunciándola para que sigas adelante.»</p>
+    <div class="row">
+      <button class="ghost" id="btnMic">🎤 Probar micrófono</button>
+      <button class="ghost" id="btnSay">🔊 Escuchar indicaciones</button>
+    </div>
+    <button class="go" id="btnGo" disabled>▶ COMENZAR EVALUACIÓN</button>
+  </section>
+
+  <section class="sc" id="sc2">
+    <div class="timer"><div id="aClock">60</div><div class="bar" aria-hidden="true"><i id="aBar"></i></div></div>
+    <div id="aText"></div>
+  </section>
+
+  <section class="sc" id="sc3">
+    <h2 id="qTitle"></h2>
+    <div id="qOpts"></div>
+    <p id="qStat"></p>
+  </section>
+
+  <section class="sc" id="sc4">
+    <h2>Resultados</h2>
+    <div class="stats">
+      <div class="stat"><b id="rPI">0</b><span>Palabras Intentadas (PI)</span></div>
+      <div class="stat"><b id="rE">0</b><span>Total de Errores Detectados (E)</span></div>
+      <div class="stat"><b id="rPCPM">0</b><span>PCPM = PI − E</span></div>
+      <div class="stat"><b id="rAcc">0%</b><span>% Precisión = (PCPM / PI) × 100</span></div>
+    </div>
+    <div id="aResult" role="status"></div>
+    <button class="ghost" id="btnAgain">Repetir evaluación</button>
+  </section>
+</main>
+
+<!-- MODO EVALUADOR -->
+<main id="evaluator" class="hidden">
+  <section class="card">
+    <div class="timer">
+      <button id="startBtn">▶ Iniciar Prueba (60s)</button>
+      <div id="clock" aria-live="off">60</div>
+      <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
+    </div>
+    <div class="legend">
+      <span class="l1">Normal</span><span class="l2">Error / Mala pronunciación</span>
+      <span class="l3">Omisión</span><span class="l4">Vacilación &gt; 3s</span>
+      <span class="l5">ÚLTIMA PALABRA LEÍDA (corte 60s)</span>
+    </div>
+    <p style="margin:0 0 8px;color:var(--muted);font-size:.9rem">Clic en una palabra para cambiar su marca: Normal → Error → Omisión → Vacilación → Última palabra → Normal.</p>
+    <h3>El rescate del gatito</h3>
+    <div id="lines"></div>
+  </section>
+
+  <aside class="sidebar">
+    <section class="card">
+      <h3>Comprobación de comprensión (Hiperlexia Check)</h3>
+      <div class="q" data-q="0">
+        <p>1. ¿Qué animal encontró Lucas y dónde estaba?</p>
+        <small>Esperado: Un gatito bajo el puente de madera</small>
+        <div class="qb"><button class="yes" aria-pressed="false">Correcto</button><button class="no" aria-pressed="false">Incorrecto</button></div>
+      </div>
+      <div class="q" data-q="1">
+        <p>2. ¿Qué usó Lucas para rescatar al gatito?</p>
+        <small>Esperado: Una manta gruesa de su mochila</small>
+        <div class="qb"><button class="yes" aria-pressed="false">Correcto</button><button class="no" aria-pressed="false">Incorrecto</button></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Calculadora en tiempo real</h3>
+      <div class="stats">
+        <div class="stat"><b id="sPI">0</b><span>Palabras Intentadas (PI)</span></div>
+        <div class="stat"><b id="sE">0</b><span>Total de Errores (E)</span></div>
+        <div class="stat"><b id="sPCPM">0</b><span>PCPM = PI − E</span></div>
+        <div class="stat"><b id="sAcc">0%</b><span>Precisión = (PCPM / PI) × 100</span></div>
+      </div>
+      <div id="result" class="hidden" role="status"></div>
+    </section>
+  </aside>
+</main>
+
+<script>
+(() => {
+  // ---------- Datos del texto (12 líneas, numeración acumulada) ----------
+  const LINES = [
+    "Un día de lluvia, Lucas escuchó un maullido débil bajo",
+    "el puente de madera. Se acercó despacio y vio a",
+    "un pequeño gatito gris asustado y mojado.",
+    "El agua del río comenzaba a subir y el",
+    "gatito no podía salir solo. Lucas intentó alcanzarlo",
+    "con el brazo, pero el puente estaba muy",
+    "resbaloso. Entonces, recordó que llevaba una manta",
+    "gruesa en su mochila. La extendió con cuidado",
+    "hasta el suelo. El gatito caminó sobre la",
+    "manta y Lucas lo cargó con suavidad. Lo",
+    "llevó a casa, lo secó con una toalla",
+    "y le dio leche tibia. El gatito ronroneó feliz."
+  ].map(l => l.split(" "));
+
+  const TOTALS = [10,20,27,36,44,52,59,67,75,83,91,100];
+  const STATES = 5; // 0 normal, 1 error, 2 omisión, 3 vacilación, 4 última palabra
+  const DURATION = 60;
+
+  const marks = new Array(100).fill(0);
+  const comp = [null, null]; // true / false / null
+
+  const $ = id => document.getElementById(id);
+
+  // ---------- Render del texto interactivo ----------
+  const linesEl = $("lines");
+  let n = 0;
+  LINES.forEach((words, li) => {
+    const row = document.createElement("div");
+    row.className = "line";
+    row.innerHTML = '<span class="lnum">L' + (li + 1) + '</span>';
+    const wrap = document.createElement("div");
+    wrap.className = "words";
+    words.forEach(txt => {
+      n++;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "w";
+      b.dataset.i = n;
+      b.innerHTML = txt + "<sup>(" + n + ")</sup>";
+      b.setAttribute("aria-label", "Palabra " + n + ": " + txt);
+      wrap.appendChild(b);
+    });
+    row.appendChild(wrap);
+    const tot = document.createElement("span");
+    tot.className = "tot";
+    tot.textContent = "[Total: " + TOTALS[li] + "]";
+    row.appendChild(tot);
+    linesEl.appendChild(row);
+  });
+  if (n !== 100) console.warn("El texto no suma 100 palabras:", n);
+
+  linesEl.addEventListener("click", e => {
+    const b = e.target.closest(".w");
+    if (!b) return;
+    const i = +b.dataset.i;
+    const next = (marks[i - 1] + 1) % STATES;
+    if (next === 4) {
+      // solo una palabra puede ser la última leída
+      marks.forEach((m, k) => { if (m === 4) marks[k] = 0; });
+    }
+    marks[i - 1] = next;
+    paintMarks();
+    calc();
+  });
+
+  function paintMarks() {
+    document.querySelectorAll(".w").forEach(b => {
+      b.className = "w" + (marks[b.dataset.i - 1] ? " s" + marks[b.dataset.i - 1] : "");
+    });
+  }
+
+  // ---------- Comprensión ----------
+  document.querySelectorAll(".q").forEach(q => {
+    const idx = +q.dataset.q;
+    const yes = q.querySelector(".yes"), no = q.querySelector(".no");
+    function set(v) {
+      comp[idx] = comp[idx] === v ? null : v;
+      yes.setAttribute("aria-pressed", comp[idx] === true);
+      no.setAttribute("aria-pressed", comp[idx] === false);
+      calc();
+    }
+    yes.addEventListener("click", () => set(true));
+    no.addEventListener("click", () => set(false));
+  });
+
+  // ---------- Calculadora y árbol de decisión ----------
+  function classify(acc, bothOk) {
+    if (acc < 85) return { cls: "r1", html: "<h4>🔴 NIVEL 1 (Fácil / Inicial)</h4><p>Nivel de Frustración detectado. Asignar Nivel 1 (40-70 palabras, tarjetas SUR 1-2 palabras).</p>" };
+    if (acc > 95 && bothOk) return { cls: "r3", html: "<h4>🟢 NIVEL 3 (Avanzado / Complejo)</h4><p>Nivel Independiente. Asignar Nivel 3 (150-180 palabras, complejidad avanzada).</p>" };
+    let msg = "Nivel Instruccional Ideal. Asignar Nivel 2 (100-140 palabras, tarjetas SUR 2-3 palabras).";
+    if (acc > 95) msg += " (Precisión > 95%: para Nivel 3 ambas preguntas de comprensión deben estar marcadas como Correctas.)";
+    return { cls: "r2", html: "<h4>🟡 NIVEL 2 (Intermedio / Normal)</h4><p>" + msg + "</p>" };
+  }
+
+  function calc() {
+    const cut = marks.indexOf(4);
+    const PI = cut === -1 ? 0 : cut + 1;
+    let E = 0;
+    const limit = PI === 0 ? 100 : PI;
+    for (let k = 0; k < limit; k++) if (marks[k] >= 1 && marks[k] <= 3) E++;
+    const PCPM = Math.max(PI - E, 0);
+    const acc = PI > 0 ? (PCPM / PI) * 100 : 0;
+
+    $("sPI").textContent = PI;
+    $("sE").textContent = E;
+    $("sPCPM").textContent = PCPM;
+    $("sAcc").textContent = (Math.round(acc * 10) / 10) + "%";
+
+    const r = $("result");
+    if (PI === 0) { r.className = "hidden"; r.innerHTML = ""; return; }
+    const c = classify(acc, comp[0] === true && comp[1] === true);
+    r.className = c.cls;
+    r.innerHTML = c.html;
+  }
+
+  // ---------- Cronómetro de 60 s ----------
+  let remaining = DURATION, tick = null, audioCtx = null;
+  const clock = $("clock"), fill = $("barFill"), startBtn = $("startBtn");
+
+  function beep() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = 660;
+      g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.0);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + 1.0);
+    } catch (e) { /* sin audio disponible */ }
+  }
+
+  function drawClock() {
+    clock.textContent = remaining;
+    clock.classList.toggle("end", remaining === 0);
+    fill.style.width = (remaining / DURATION * 100) + "%";
+  }
+
+  startBtn.addEventListener("click", () => {
+    if (tick) return;
+    try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); audioCtx.resume(); } catch (e) {}
+    remaining = DURATION; drawClock();
+    startBtn.disabled = true;
+    startBtn.textContent = "⏱ Prueba en curso…";
+    tick = setInterval(() => {
+      remaining--;
+      drawClock();
+      if (remaining <= 0) {
+        clearInterval(tick); tick = null;
+        beep();
+        startBtn.textContent = "Tiempo terminado: marca la ÚLTIMA PALABRA LEÍDA";
+      }
+    }, 1000);
+  });
+
+  function resetTimer() {
+    clearInterval(tick); tick = null;
+    remaining = DURATION; drawClock();
+    startBtn.disabled = false;
+    startBtn.textContent = "▶ Iniciar Prueba (60s)";
+  }
+
+  // ---------- Reiniciar ----------
+  $("btnReset").addEventListener("click", () => {
+    marks.fill(0); comp[0] = comp[1] = null;
+    document.querySelectorAll(".qb button").forEach(b => b.setAttribute("aria-pressed", "false"));
+    paintMarks(); resetTimer(); calc(); resetAuto();
+  });
+
+  // ---------- Conmutador de vista y modo nocturno ----------
+  function setView(mode) {
+    const map = { student: ["student", "btnStudent"], eval: ["evaluator", "btnEval"], auto: ["auto", "btnAuto"] };
+    Object.keys(map).forEach(k => {
+      $(map[k][0]).classList.toggle("hidden", k !== mode);
+      $(map[k][1]).setAttribute("aria-pressed", k === mode);
+    });
+    stopAll();
+    if (mode === "auto") { resetAuto(); speak(WELCOME, null, "bienvenida"); }
+  }
+  $("btnStudent").addEventListener("click", () => setView("student"));
+  $("btnEval").addEventListener("click", () => setView("eval"));
+  $("btnAuto").addEventListener("click", () => setView("auto"));
+  $("btnNight").addEventListener("click", e => {
+    const on = document.body.classList.toggle("night");
+    e.currentTarget.setAttribute("aria-pressed", on);
+    e.currentTarget.textContent = on ? "Modo diurno" : "Modo nocturno";
+  });
+
+  // =====================================================================
+  // MODO AUTOMÁTICO: Web Speech API (reconocimiento + síntesis de voz)
+  // =====================================================================
+  const WORDS = LINES.flat();
+  const NORM = t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+  const TGT = WORDS.map(NORM);
+  const BREAKS = [27, 70, 100]; // fin de párrafo 1, 2 y 3
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const INTRO = "Di Hola para probar tu micrófono. Lee la historia en voz alta a tu ritmo. Si te detienes en una palabra, el programa te ayudará pronunciándola para que sigas adelante.";
+  const WELCOME = "¡Hola, explorador! ¡Bienvenido a la estación uno y dos! Tengo una sorpresa para ti: ¡un cuento lleno de aventuras nos espera! ¿Quién será el personaje? ¿Qué le pasará? Vamos a descubrirlo juntos, ¡con cada lectura mejorarás! Eres capaz de grandes cosas.";
+  const QS = [
+    { q: "¿Qué animal encontró Lucas y dónde estaba?", o: ["Un gatito bajo el puente de madera", "Un perro dentro del río", "Un pájaro en un árbol"], ok: 0, k: [["gatit", "gato"], ["puente"]] },
+    { q: "¿Qué usó Lucas para rescatar al gatito?", o: ["Una manta gruesa de su mochila", "Una cuerda larga", "Una escalera de madera"], ok: 0, k: [["manta"]] }
+  ];
+  const A = { st: [], p: 0, rec: null, reading: false, t: null, last: 0, speaking: false, vac: -1, qi: 0, ans: [null, null], used: {}, PI: 0, end: 0, sid: 0, audio: null };
+
+  function lev(a, b) {
+    const d = [...Array(b.length + 1).keys()];
+    for (let i = 1; i <= a.length; i++) {
+      let prev = d[0]; d[0] = i;
+      for (let j = 1; j <= b.length; j++) {
+        const t = d[j];
+        d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+        prev = t;
+      }
+    }
+    return d[b.length];
+  }
+  const same = (a, b) => a === b || (a.length >= 6 && b.length >= 6 && lev(a, b) <= 1);
+
+  function screen(n) { for (let i = 0; i <= 4; i++) $("sc" + i).classList.toggle("on", i === n); }
+
+  // ---- Voz humana: 1) grabación real en audio/<clave>.mp3, 2) mejor voz neuronal/natural del dispositivo ----
+  let VOICES = [];
+  function fillVoices() {
+    if (!window.speechSynthesis) return;
+    VOICES = speechSynthesis.getVoices();
+    const sel = $("voiceSel"), cur = sel.value;
+    sel.length = 1;
+    VOICES.filter(v => /^es/i.test(v.lang)).forEach(v => {
+      const o = document.createElement("option"); o.value = v.name; o.textContent = v.name + " (" + v.lang + ")"; sel.appendChild(o);
+    });
+    sel.value = cur;
+  }
+  if (window.speechSynthesis) { fillVoices(); speechSynthesis.onvoiceschanged = fillVoices; }
+
+  function pickVoice() {
+    const es = VOICES.filter(v => /^es/i.test(v.lang));
+    const chosen = $("voiceSel").value;
+    if (chosen) { const m = es.find(v => v.name === chosen); if (m) return m; }
+    let best = null, bs = -1;
+    es.forEach(v => {
+      const n = v.name.toLowerCase(); let sc = 0;
+      if (/natural|neural|online/.test(n)) sc += 100;
+      if (/premium|enhanced|siri/.test(n)) sc += 60;
+      if (/google/.test(n)) sc += 40;
+      if (/es[-_]pe/i.test(v.lang)) sc += 15; else if (/es[-_](us|mx|419|co|ar|cl)/i.test(v.lang)) sc += 12; else if (/es[-_]es/i.test(v.lang)) sc += 8;
+      if (!v.localService) sc += 5;
+      if (sc > bs) { bs = sc; best = v; }
+    });
+    return best;
+  }
+
+  function stopSpeech() {
+    A.sid++;
+    if (A.audio) { A.audio.pause(); A.audio = null; }
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    A.speaking = false;
+  }
+
+  function speak(txt, cb, key) {
+    stopSpeech();
+    const id = A.sid; A.speaking = true;
+    let fin = false;
+    const done = () => { if (fin || id !== A.sid) return; fin = true; A.speaking = false; A.last = Date.now(); cb && cb(); };
+    const tts = () => {
+      if (id !== A.sid) return;
+      if (!window.speechSynthesis) { done(); return; }
+      const v = pickVoice();
+      const parts = txt.split(/(?<=[.!?])\s+/).filter(Boolean); // frases cortas = ritmo más natural
+      parts.forEach((t, i) => {
+        const u = new SpeechSynthesisUtterance(t);
+        if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "es-ES";
+        u.rate = 0.92; u.pitch = 1;
+        if (i === parts.length - 1) { u.onend = done; u.onerror = done; }
+        speechSynthesis.speak(u);
+      });
+    };
+    if (key) {
+      const au = new Audio("audio/" + key + ".mp3"); A.audio = au;
+      let fb = false;
+      const f = () => { if (fb) return; fb = true; A.audio = null; tts(); };
+      au.onended = done; au.onerror = f;
+      au.play().catch(f);
+    } else tts();
+  }
+
+  function mkRec(cont) {
+    const r = new SR();
+    r.lang = "es-PE"; r.continuous = cont; r.interimResults = cont; r.maxAlternatives = 1;
+    return r;
+  }
+  function stopRec() {
+    if (A.rec) { A.rec.onend = null; A.rec.onerror = null; try { A.rec.abort(); } catch (e) {} A.rec = null; }
+  }
+  function stopAll() {
+    A.reading = false; clearInterval(A.t); A.t = null; stopRec();
+    stopSpeech();
+  }
+
+  // Pantalla 1: prueba de micrófono
+  function micMsg(t, cls) { const m = $("micStatus"); m.textContent = t; m.className = "badge " + (cls || ""); }
+  $("btnSay").addEventListener("click", () => speak(INTRO, null, "indicaciones"));
+  $("btnMic").addEventListener("click", () => {
+    if (!SR) { micMsg("Tu navegador no admite reconocimiento de voz. Usa Chrome o Edge.", "bad"); return; }
+    stopRec(); stopSpeech();
+    const r = mkRec(false); A.rec = r;
+    micMsg("🎤 Escuchando… di «Hola»");
+    r.onresult = e => {
+      if (NORM(e.results[0][0].transcript).includes("hola")) { micMsg("🎤 Micrófono Conectado", "ok"); $("btnGo").disabled = false; }
+      else micMsg("No te escuché bien. Toca el botón y di «Hola».", "bad");
+    };
+    r.onerror = e => micMsg(e.error === "not-allowed" ? "Permite el uso del micrófono en el navegador." : "No se detectó voz. Intenta otra vez.", "bad");
+    r.start();
+  });
+
+  // Pantalla 2: lectura cronometrada
+  function renderText() {
+    let h = '<h3>El rescate del gatito</h3><p>';
+    WORDS.forEach((w, i) => {
+      h += '<span class="aw" id="aw' + i + '">' + w + '</span> ';
+      if (BREAKS.includes(i + 1)) h += '</p>' + (i + 1 < 100 ? '<p>' : '');
+    });
+    $("aText").innerHTML = h;
+  }
+  function paint() {
+    for (let i = 0; i < 100; i++) {
+      const el = $("aw" + i);
+      let c = "aw" + (A.st[i] ? " " + A.st[i] : "");
+      if (A.reading && i === A.p) c += " cur";
+      if (!A.reading && A.PI > 0 && i === A.PI - 1) c += " cut";
+      el.className = c;
+    }
+  }
+
+  $("btnGo").addEventListener("click", () => {
+    stopAll();
+    A.st = new Array(100).fill(0); A.p = 0; A.vac = -1; A.PI = 0;
+    renderText(); screen(2);
+    A.reading = true; A.last = Date.now(); A.end = Date.now() + 60000;
+    paint(); startRec();
+    A.t = setInterval(tickA, 250);
+  });
+
+  function startRec() {
+    if (!A.reading || !SR) return;
+    const r = mkRec(true); A.rec = r; A.used = {};
+    r.onresult = onRes;
+    r.onend = () => { if (A.reading) { try { startRec(); } catch (e) {} } };
+    r.start();
+  }
+
+  function onRes(e) {
+    if (A.speaking || !A.reading) return;
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const res = e.results[i];
+      const ws = res[0].transcript.split(/\s+/).map(NORM).filter(Boolean);
+      const upto = res.isFinal ? ws.length : ws.length - 1; // la última palabra provisional es inestable
+      let c = A.used[i] || 0;
+      for (; c < upto; c++) feed(ws[c]);
+      A.used[i] = c;
+    }
+  }
+
+  function feed(w) {
+    if (A.p >= 100 || !A.reading) return;
+    A.last = Date.now();
+    const p = A.p;
+    if (p > 0 && w === TGT[p - 1] && w !== TGT[p]) return; // repetición de la palabra anterior
+    if (same(w, TGT[p])) { A.st[p] = A.vac === p ? "vac" : "ok"; A.p++; }
+    else {
+      let k = -1;
+      for (let j = p + 1; j <= p + 4 && j < 100; j++) if (same(w, TGT[j])) { k = j; break; }
+      if (k > -1) { for (let j = p; j < k; j++) A.st[j] = "omi"; A.st[k] = "ok"; A.p = k + 1; } // omisión
+      else { A.st[p] = "err"; A.p++; } // sustitución / mala pronunciación
+    }
+    paint();
+    if (A.p >= 100) finishRead();
+  }
+
+  function tickA() {
+    const left = Math.max(0, Math.ceil((A.end - Date.now()) / 1000));
+    $("aClock").textContent = left;
+    $("aBar").style.width = (left / 60 * 100) + "%";
+    if (left <= 0) { finishRead(); return; }
+    // Silencio > 3 s: el software modela la palabra por voz y la cuenta como vacilación
+    if (!A.speaking && A.p < 100 && Date.now() - A.last >= 3000) {
+      const p = A.p;
+      A.st[p] = "vac";
+      if (A.vac === p) { A.p++; A.vac = -1; A.last = Date.now(); }
+      else { A.vac = p; speak(WORDS[p].replace(/[.,]/g, "")); }
+      paint();
+    }
+  }
+
+  function finishRead() {
+    if (!A.reading) return;
+    stopAll();
+    A.PI = A.p; // corte: última palabra alcanzada
+    paint();
+    setTimeout(() => showQ(0), 1500);
+  }
+
+  // Pantalla 3: comprensión (voz sintetizada, respuesta hablada o por clic)
+  function showQ(i) {
+    A.qi = i; screen(3);
+    const q = QS[i];
+    $("qTitle").textContent = (i + 1) + ". " + q.q;
+    const box = $("qOpts"); box.innerHTML = "";
+    q.o.map((t, idx) => ({ t, idx })).sort(() => Math.random() - 0.5).forEach(o => {
+      const b = document.createElement("button");
+      b.className = "opt"; b.textContent = o.t;
+      b.addEventListener("click", () => answer(o.idx === q.ok));
+      box.appendChild(b);
+    });
+    $("qStat").textContent = SR ? "Escucha la pregunta. Luego responde hablando o toca una opción." : "Toca una opción.";
+    speak(q.q, () => { if (SR && A.qi === i && $("sc3").classList.contains("on")) listenAnswer(i); }, "pregunta" + (i + 1));
+  }
+  function listenAnswer(i) {
+    stopRec();
+    const r = mkRec(false); A.rec = r;
+    r.onresult = e => {
+      const t = NORM(e.results[0][0].transcript);
+      if (QS[i].k.every(g => g.some(x => t.includes(x)))) answer(true);
+      else $("qStat").textContent = "No te escuché bien. Toca la opción que creas correcta.";
+    };
+    r.onerror = () => {};
+    try { r.start(); } catch (e) {}
+  }
+  function answer(ok) {
+    stopRec(); stopSpeech();
+    A.ans[A.qi] = ok;
+    if (A.qi < QS.length - 1) showQ(A.qi + 1); else showResults();
+  }
+
+  // Pantalla 4: resultados y árbol de decisión
+  function showResults() {
+    screen(4);
+    const PI = A.PI;
+    let E = 0;
+    for (let i = 0; i < PI; i++) if (A.st[i] === "err" || A.st[i] === "omi" || A.st[i] === "vac") E++;
+    const PCPM = Math.max(PI - E, 0), acc = PI > 0 ? PCPM / PI * 100 : 0;
+    $("rPI").textContent = PI; $("rE").textContent = E; $("rPCPM").textContent = PCPM;
+    $("rAcc").textContent = (Math.round(acc * 10) / 10) + "%";
+    const r = $("aResult");
+    if (PI === 0) { r.className = ""; r.innerHTML = "<h4>No se detectó lectura</h4><p>Revisa el micrófono y repite la evaluación.</p>"; return; }
+    const c = classify(acc, A.ans[0] === true && A.ans[1] === true);
+    r.className = c.cls; r.innerHTML = c.html;
+  }
+
+  function resetAuto() {
+    stopAll();
+    A.st = []; A.p = 0; A.PI = 0; A.vac = -1; A.qi = 0; A.ans = [null, null];
+    $("aClock").textContent = "60"; $("aBar").style.width = "100%";
+    micMsg("🎤 Micrófono sin probar"); $("btnGo").disabled = true;
+    screen(0);
+  }
+  $("btnAgain").addEventListener("click", () => { resetAuto(); speak(WELCOME, null, "bienvenida"); });
+  $("btnInd").addEventListener("click", () => { screen(1); speak(INTRO, null, "indicaciones"); });
+  $("btnHear").addEventListener("click", () => speak(WELCOME, null, "bienvenida"));
+  $("voiceSel").addEventListener("change", () => speak("¡Hola, explorador! Esta es mi voz."));
+
+  drawClock(); calc(); resetAuto();
+})();
+</script>
+</body>
+</html>
