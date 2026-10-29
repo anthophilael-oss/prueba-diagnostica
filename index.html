@@ -130,6 +130,15 @@ body.night .go{color:#14202E}
 .pill:hover{background:#1F2D3A}
 .wtools{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center;color:#5A4A2E;font-size:.95rem}
 .wbtn,.wtools select{background:#fff;color:#2B3A4A;border:2px solid #D9BC8C;border-radius:10px;padding:8px 12px;font:inherit}
+.mic{font-size:1.3rem;padding:16px 28px;border:2px solid var(--accent);font-weight:700}
+.fin{text-align:center;padding:50px 10px}
+.fin .trophy{font-size:96px;line-height:1}
+#auto .fin h2{font-size:2.6rem;margin:18px 0}
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50;display:none}
+.fld{display:block;margin:10px 0;font-size:.9rem;color:var(--muted)}
+.fld input{width:100%;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;margin-top:4px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.acts .ghost{flex:1 1 auto}
 </style>
 </head>
 <body>
@@ -181,28 +190,28 @@ body.night .go{color:#14202E}
         </div>
       </div>
       <button class="pill" id="btnInd">Indicaciones</button>
-      <div class="wtools">
-        <button class="wbtn" id="btnHear">🔊 Escuchar de nuevo</button>
-        <label>Voz: <select id="voiceSel"><option value="">Automática (la más natural)</option></select></label>
-      </div>
     </div>
   </section>
 
   <section class="sc" id="sc1">
     <h2>¡Hola! Vamos a leer juntos</h2>
-    <p class="ins"><b>Prueba de Voz:</b> «Di “Hola” para probar tu micrófono.»</p>
+    <p class="ins"><b>Prueba de Voz:</b> «Haz clic en el botón para probar el micrófono y di “Hola”.»</p>
+    <div class="row"><button class="ghost mic" id="btnMic">🎤 Probar micrófono</button></div>
     <p><span id="micStatus" class="badge">🎤 Micrófono sin probar</span></p>
-    <p class="ins"><b>Instrucción de Lectura:</b> «Lee la historia en voz alta a tu ritmo. Si te detienes en una palabra, el programa te ayudará pronunciándola para que sigas adelante.»</p>
-    <div class="row">
-      <button class="ghost" id="btnMic">🎤 Probar micrófono</button>
-      <button class="ghost" id="btnSay">🔊 Escuchar indicaciones</button>
-    </div>
+    <p class="ins hidden" id="insLect"><b>Instrucción de Lectura:</b> «Lee la historia en voz alta a tu ritmo. Si te detienes en una palabra, el programa te ayudará pronunciándola para que sigas adelante.»</p>
     <button class="go" id="btnGo" disabled>▶ COMENZAR EVALUACIÓN</button>
   </section>
 
   <section class="sc" id="sc2">
-    <div class="timer"><div id="aClock">60</div><div class="bar" aria-hidden="true"><i id="aBar"></i></div></div>
-    <div id="aText"></div>
+    <div id="aReady">
+      <h2>¿Estás listo?</h2>
+      <p class="ins">Cuando estés listo, haz clic. Empezará a correr el tiempo y tu voz se grabará. Apenas aprietes el botón, debes empezar a leer.</p>
+      <button class="go" id="btnReady">¡LISTO!</button>
+    </div>
+    <div id="aRun" class="hidden">
+      <div class="timer"><div id="aClock">60</div><div class="bar" aria-hidden="true"><i id="aBar"></i></div></div>
+      <div id="aText"></div>
+    </div>
   </section>
 
   <section class="sc" id="sc3">
@@ -212,15 +221,11 @@ body.night .go{color:#14202E}
   </section>
 
   <section class="sc" id="sc4">
-    <h2>Resultados</h2>
-    <div class="stats">
-      <div class="stat"><b id="rPI">0</b><span>Palabras Intentadas (PI)</span></div>
-      <div class="stat"><b id="rE">0</b><span>Total de Errores Detectados (E)</span></div>
-      <div class="stat"><b id="rPCPM">0</b><span>PCPM = PI − E</span></div>
-      <div class="stat"><b id="rAcc">0%</b><span>% Precisión = (PCPM / PI) × 100</span></div>
+    <div class="fin">
+      <div class="trophy" aria-hidden="true">🎉</div>
+      <h2>¡Bien, terminamos la misión!</h2>
+      <p class="ins">¡Lo hiciste muy bien! Gracias por leer conmigo. 🌟</p>
     </div>
-    <div id="aResult" role="status"></div>
-    <button class="ghost" id="btnAgain">Repetir evaluación</button>
   </section>
 </main>
 
@@ -243,6 +248,28 @@ body.night .go{color:#14202E}
   </section>
 
   <aside class="sidebar">
+    <section class="card" id="autoRep">
+      <h3>Resultado de la prueba automática (solo evaluador)</h3>
+      <p id="repEmpty" style="color:var(--muted);margin:0">Aún no hay una prueba automática completada. Al terminar, el resultado aparecerá aquí y no se muestra al estudiante.</p>
+      <div id="repBody" class="hidden">
+        <div class="stats">
+          <div class="stat"><b id="rPI">0</b><span>Palabras Intentadas (PI)</span></div>
+          <div class="stat"><b id="rE">0</b><span>Total de Errores (E)</span></div>
+          <div class="stat"><b id="rPCPM">0</b><span>PCPM = PI − E</span></div>
+          <div class="stat"><b id="rAcc">0%</b><span>% Precisión</span></div>
+        </div>
+        <div id="aResult" role="status"></div>
+        <label class="fld">Nombre del estudiante (opcional)<input id="stuName" type="text"></label>
+        <label class="fld">Correo del evaluador<input id="evalMail" type="email" placeholder="evaluador@correo.com"></label>
+        <div class="acts">
+          <button class="ghost" id="btnMail">✉ Enviar por correo</button>
+          <button class="ghost" id="btnPdf">⬇ Descargar PDF</button>
+          <button class="ghost hidden" id="btnRec">⬇ Grabación de voz</button>
+        </div>
+        <small style="color:var(--muted)">El correo se abre en tu programa de correo con el resultado escrito. Para adjuntar el PDF o la grabación, descárgalos primero.</small>
+      </div>
+    </section>
+
     <section class="card">
       <h3>Comprobación de comprensión (Hiperlexia Check)</h3>
       <div class="q" data-q="0">
@@ -270,6 +297,7 @@ body.night .go{color:#14202E}
   </aside>
 </main>
 
+<canvas id="confetti" aria-hidden="true"></canvas>
 <script>
 (() => {
   // ---------- Datos del texto (12 líneas, numeración acumulada) ----------
@@ -361,11 +389,14 @@ body.night .go{color:#14202E}
 
   // ---------- Calculadora y árbol de decisión ----------
   function classify(acc, bothOk) {
-    if (acc < 85) return { cls: "r1", html: "<h4>🔴 NIVEL 1 (Fácil / Inicial)</h4><p>Nivel de Frustración detectado. Asignar Nivel 1 (40-70 palabras, tarjetas SUR 1-2 palabras).</p>" };
-    if (acc > 95 && bothOk) return { cls: "r3", html: "<h4>🟢 NIVEL 3 (Avanzado / Complejo)</h4><p>Nivel Independiente. Asignar Nivel 3 (150-180 palabras, complejidad avanzada).</p>" };
-    let msg = "Nivel Instruccional Ideal. Asignar Nivel 2 (100-140 palabras, tarjetas SUR 2-3 palabras).";
-    if (acc > 95) msg += " (Precisión > 95%: para Nivel 3 ambas preguntas de comprensión deben estar marcadas como Correctas.)";
-    return { cls: "r2", html: "<h4>🟡 NIVEL 2 (Intermedio / Normal)</h4><p>" + msg + "</p>" };
+    let cls, t, m;
+    if (acc < 85) { cls = "r1"; t = "🔴 NIVEL 1 (Fácil / Inicial)"; m = "Nivel de Frustración detectado. Asignar Nivel 1 (40-70 palabras, tarjetas SUR 1-2 palabras)."; }
+    else if (acc > 95 && bothOk) { cls = "r3"; t = "🟢 NIVEL 3 (Avanzado / Complejo)"; m = "Nivel Independiente. Asignar Nivel 3 (150-180 palabras, complejidad avanzada)."; }
+    else {
+      cls = "r2"; t = "🟡 NIVEL 2 (Intermedio / Normal)"; m = "Nivel Instruccional Ideal. Asignar Nivel 2 (100-140 palabras, tarjetas SUR 2-3 palabras).";
+      if (acc > 95) m += " (Precisión > 95%: para Nivel 3 ambas preguntas de comprensión deben estar marcadas como Correctas.)";
+    }
+    return { cls, t, m, html: "<h4>" + t + "</h4><p>" + m + "</p>" };
   }
 
   function calc() {
@@ -451,7 +482,7 @@ body.night .go{color:#14202E}
       $(map[k][1]).setAttribute("aria-pressed", k === mode);
     });
     stopAll();
-    if (mode === "auto") { resetAuto(); speak(WELCOME, null, "bienvenida"); }
+    if (mode === "auto") { resetAuto(true); speak(WELCOME, null, "bienvenida"); }
   }
   $("btnStudent").addEventListener("click", () => setView("student"));
   $("btnEval").addEventListener("click", () => setView("eval"));
@@ -470,13 +501,16 @@ body.night .go{color:#14202E}
   const TGT = WORDS.map(NORM);
   const BREAKS = [27, 70, 100]; // fin de párrafo 1, 2 y 3
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const INTRO = "Di Hola para probar tu micrófono. Lee la historia en voz alta a tu ritmo. Si te detienes en una palabra, el programa te ayudará pronunciándola para que sigas adelante.";
+  const MICTXT = "Haz clic en el botón para probar el micrófono y di Hola.";
+  const READTXT = "Lee la historia en voz alta a tu ritmo. Si te detienes en una palabra, el programa te ayudará pronunciándola para que sigas adelante.";
+  const READY = "Cuando estés listo, haz clic. Empezará a correr el tiempo y tu voz se grabará. Apenas aprietes el botón, debes empezar a leer. ¿Estás listo?";
+  const QINTRO = "¡Muy bien leído! Ahora te haré dos preguntas. Escucha con atención y responde hablando o tocando una opción. ¡Después terminamos!";
   const WELCOME = "¡Hola, explorador! ¡Bienvenido a la estación uno y dos! Tengo una sorpresa para ti: ¡un cuento lleno de aventuras nos espera! ¿Quién será el personaje? ¿Qué le pasará? Vamos a descubrirlo juntos, ¡con cada lectura mejorarás! Eres capaz de grandes cosas.";
   const QS = [
     { q: "¿Qué animal encontró Lucas y dónde estaba?", o: ["Un gatito bajo el puente de madera", "Un perro dentro del río", "Un pájaro en un árbol"], ok: 0, k: [["gatit", "gato"], ["puente"]] },
     { q: "¿Qué usó Lucas para rescatar al gatito?", o: ["Una manta gruesa de su mochila", "Una cuerda larga", "Una escalera de madera"], ok: 0, k: [["manta"]] }
   ];
-  const A = { st: [], p: 0, rec: null, reading: false, t: null, last: 0, speaking: false, vac: -1, qi: 0, ans: [null, null], used: {}, PI: 0, end: 0, sid: 0, audio: null };
+  const A = { st: [], p: 0, rec: null, reading: false, t: null, last: 0, speaking: false, vac: -1, qi: 0, ans: [null, null], used: {}, PI: 0, end: 0, sid: 0, audio: null, rep: null, blob: null, mr: null, keepRec: false, chunks: [], micOk: false, micEnd: 0, micErr: false, celebrating: false };
 
   function lev(a, b) {
     const d = [...Array(b.length + 1).keys()];
@@ -492,26 +526,34 @@ body.night .go{color:#14202E}
   }
   const same = (a, b) => a === b || (a.length >= 6 && b.length >= 6 && lev(a, b) <= 1);
 
+  // ---- Grabación de la voz del alumno (para el evaluador) ----
+  function startRecording() {
+    A.blob = null; A.chunks = []; A.keepRec = false;
+    if (!navigator.mediaDevices || !window.MediaRecorder) return;
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(st => {
+      const mr = new MediaRecorder(st); A.mr = mr;
+      mr.ondataavailable = e => { if (e.data.size) A.chunks.push(e.data); };
+      mr.onstop = () => {
+        st.getTracks().forEach(t => t.stop());
+        if (A.keepRec) { A.blob = new Blob(A.chunks, { type: mr.mimeType || "audio/webm" }); renderReport(); }
+      };
+      mr.start();
+    }).catch(() => {});
+  }
+  function stopRecording() {
+    const mr = A.mr; A.mr = null;
+    if (mr && mr.state !== "inactive") { try { mr.stop(); } catch (e) {} }
+  }
+
   function screen(n) { for (let i = 0; i <= 4; i++) $("sc" + i).classList.toggle("on", i === n); }
 
   // ---- Voz humana: 1) grabación real en audio/<clave>.mp3, 2) mejor voz neuronal/natural del dispositivo ----
   let VOICES = [];
-  function fillVoices() {
-    if (!window.speechSynthesis) return;
-    VOICES = speechSynthesis.getVoices();
-    const sel = $("voiceSel"), cur = sel.value;
-    sel.length = 1;
-    VOICES.filter(v => /^es/i.test(v.lang)).forEach(v => {
-      const o = document.createElement("option"); o.value = v.name; o.textContent = v.name + " (" + v.lang + ")"; sel.appendChild(o);
-    });
-    sel.value = cur;
-  }
+  function fillVoices() { if (window.speechSynthesis) VOICES = speechSynthesis.getVoices(); }
   if (window.speechSynthesis) { fillVoices(); speechSynthesis.onvoiceschanged = fillVoices; }
 
   function pickVoice() {
     const es = VOICES.filter(v => /^es/i.test(v.lang));
-    const chosen = $("voiceSel").value;
-    if (chosen) { const m = es.find(v => v.name === chosen); if (m) return m; }
     let best = null, bs = -1;
     es.forEach(v => {
       const n = v.name.toLowerCase(); let sc = 0;
@@ -568,24 +610,41 @@ body.night .go{color:#14202E}
     if (A.rec) { A.rec.onend = null; A.rec.onerror = null; try { A.rec.abort(); } catch (e) {} A.rec = null; }
   }
   function stopAll() {
-    A.reading = false; clearInterval(A.t); A.t = null; stopRec();
+    A.reading = false; A.celebrating = false; clearInterval(A.t); A.t = null; stopRec(); stopRecording();
     stopSpeech();
   }
 
-  // Pantalla 1: prueba de micrófono
+  // Pantalla 1: prueba de micrófono (15 s para hacer clic y decir «Hola»; recién después se leen las indicaciones)
   function micMsg(t, cls) { const m = $("micStatus"); m.textContent = t; m.className = "badge " + (cls || ""); }
-  $("btnSay").addEventListener("click", () => speak(INTRO, null, "indicaciones"));
+  function micOk() {
+    if (A.micOk) return;
+    A.micOk = true; stopRec();
+    micMsg("🎤 Micrófono Conectado", "ok");
+    $("insLect").classList.remove("hidden");
+    speak(READTXT, () => { $("btnGo").disabled = false; }, "lectura");
+  }
   $("btnMic").addEventListener("click", () => {
     if (!SR) { micMsg("Tu navegador no admite reconocimiento de voz. Usa Chrome o Edge.", "bad"); return; }
     stopRec(); stopSpeech();
-    const r = mkRec(false); A.rec = r;
-    micMsg("🎤 Escuchando… di «Hola»");
-    r.onresult = e => {
-      if (NORM(e.results[0][0].transcript).includes("hola")) { micMsg("🎤 Micrófono Conectado", "ok"); $("btnGo").disabled = false; }
-      else micMsg("No te escuché bien. Toca el botón y di «Hola».", "bad");
+    A.micOk = false; A.micErr = false; A.micEnd = Date.now() + 15000;
+    micMsg("🎤 Te escucho… di «Hola» (tienes 15 segundos)");
+    const go = () => {
+      const r = mkRec(true); A.rec = r;
+      r.onresult = e => {
+        for (let i = e.resultIndex; i < e.results.length; i++)
+          if (NORM(e.results[i][0].transcript).includes("hola")) { micOk(); return; }
+      };
+      r.onerror = e => {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") { A.micErr = true; micMsg("Permite el uso del micrófono en el navegador.", "bad"); }
+      };
+      r.onend = () => {
+        if (A.micOk || A.micErr) return;
+        if (Date.now() < A.micEnd) { try { go(); } catch (x) {} }
+        else micMsg("No te escuché. Haz clic en el botón para intentar otra vez.", "bad");
+      };
+      r.start();
     };
-    r.onerror = e => micMsg(e.error === "not-allowed" ? "Permite el uso del micrófono en el navegador." : "No se detectó voz. Intenta otra vez.", "bad");
-    r.start();
+    go();
   });
 
   // Pantalla 2: lectura cronometrada
@@ -609,10 +668,18 @@ body.night .go{color:#14202E}
 
   $("btnGo").addEventListener("click", () => {
     stopAll();
+    $("aReady").classList.remove("hidden"); $("aRun").classList.add("hidden");
+    screen(2); speak(READY, null, "listo");
+  });
+
+  $("btnReady").addEventListener("click", () => {
+    stopAll();
     A.st = new Array(100).fill(0); A.p = 0; A.vac = -1; A.PI = 0;
-    renderText(); screen(2);
+    $("aReady").classList.add("hidden"); $("aRun").classList.remove("hidden");
+    $("aClock").textContent = "60"; $("aBar").style.width = "100%";
+    renderText();
     A.reading = true; A.last = Date.now(); A.end = Date.now() + 60000;
-    paint(); startRec();
+    paint(); startRecording(); startRec();
     A.t = setInterval(tickA, 250);
   });
 
@@ -669,10 +736,20 @@ body.night .go{color:#14202E}
 
   function finishRead() {
     if (!A.reading) return;
+    A.keepRec = true;
     stopAll();
     A.PI = A.p; // corte: última palabra alcanzada
     paint();
-    setTimeout(() => showQ(0), 1500);
+    setTimeout(qIntro, 1200);
+  }
+
+  function qIntro() {
+    if (!$("sc2").classList.contains("on")) return;
+    screen(3);
+    $("qTitle").textContent = "Ahora te haré dos preguntas";
+    $("qOpts").innerHTML = "";
+    $("qStat").textContent = "Escucha con atención. Después terminamos.";
+    speak(QINTRO, () => showQ(0), "preguntas");
   }
 
   // Pantalla 3: comprensión (voz sintetizada, respuesta hablada o por clic)
@@ -704,35 +781,131 @@ body.night .go{color:#14202E}
   function answer(ok) {
     stopRec(); stopSpeech();
     A.ans[A.qi] = ok;
-    if (A.qi < QS.length - 1) showQ(A.qi + 1); else showResults();
+    if (A.qi < QS.length - 1) showQ(A.qi + 1); else finishMission();
   }
 
-  // Pantalla 4: resultados y árbol de decisión
-  function showResults() {
-    screen(4);
-    const PI = A.PI;
-    let E = 0;
-    for (let i = 0; i < PI; i++) if (A.st[i] === "err" || A.st[i] === "omi" || A.st[i] === "vac") E++;
-    const PCPM = Math.max(PI - E, 0), acc = PI > 0 ? PCPM / PI * 100 : 0;
-    $("rPI").textContent = PI; $("rE").textContent = E; $("rPCPM").textContent = PCPM;
-    $("rAcc").textContent = (Math.round(acc * 10) / 10) + "%";
-    const r = $("aResult");
-    if (PI === 0) { r.className = ""; r.innerHTML = "<h4>No se detectó lectura</h4><p>Revisa el micrófono y repite la evaluación.</p>"; return; }
-    const c = classify(acc, A.ans[0] === true && A.ans[1] === true);
-    r.className = c.cls; r.innerHTML = c.html;
+  // Pantalla 4: cierre para el alumno (sin resultados). El informe queda solo en el Modo Evaluador.
+  function finishMission() {
+    const PI = A.PI, c = { err: [], omi: [], vac: [] };
+    for (let i = 0; i < PI; i++) { const k = A.st[i]; if (c[k]) c[k].push(WORDS[i].replace(/[.,]/g, "") + " (" + (i + 1) + ")"); }
+    const E = c.err.length + c.omi.length + c.vac.length, PCPM = Math.max(PI - E, 0), accRaw = PI > 0 ? PCPM / PI * 100 : 0;
+    const cl = PI > 0 ? classify(accRaw, A.ans[0] === true && A.ans[1] === true) : null;
+    A.rep = { PI, E, PCPM, acc: Math.round(accRaw * 10) / 10, c, ans: A.ans.slice(), cl, date: new Date().toLocaleString("es-PE") };
+    renderReport();
+    A.celebrating = true; screen(4); confetti();
+    speak("¡Muy bien! ¡Terminamos la misión!", null, "final");
   }
 
-  function resetAuto() {
+  function confetti() {
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const cv = $("confetti"), cx = cv.getContext("2d");
+    cv.width = innerWidth; cv.height = innerHeight; cv.style.display = "block";
+    const cols = ["#F2B63D", "#4FA3C7", "#E53935", "#43A047", "#8E5CC8", "#FF8A65"];
+    const ps = Array.from({ length: 170 }, () => ({
+      x: Math.random() * cv.width, y: -Math.random() * cv.height, w: 6 + Math.random() * 8, h: 10 + Math.random() * 10,
+      vy: 2 + Math.random() * 4, vx: -1.5 + Math.random() * 3, r: Math.random() * 6, vr: -0.2 + Math.random() * 0.4,
+      c: cols[Math.random() * cols.length | 0]
+    }));
+    const t0 = performance.now();
+    (function f(t) {
+      cx.clearRect(0, 0, cv.width, cv.height);
+      ps.forEach(q => { q.x += q.vx; q.y += q.vy; q.r += q.vr; cx.save(); cx.translate(q.x, q.y); cx.rotate(q.r); cx.fillStyle = q.c; cx.fillRect(-q.w / 2, -q.h / 2, q.w, q.h); cx.restore(); });
+      if (t - t0 < 7000 && A.celebrating) requestAnimationFrame(f);
+      else { cx.clearRect(0, 0, cv.width, cv.height); cv.style.display = "none"; }
+    })(t0);
+  }
+
+  // Informe solo para el evaluador
+  function renderReport() {
+    const r = A.rep; if (!r) return;
+    $("repEmpty").classList.add("hidden"); $("repBody").classList.remove("hidden");
+    $("rPI").textContent = r.PI; $("rE").textContent = r.E; $("rPCPM").textContent = r.PCPM; $("rAcc").textContent = r.acc + "%";
+    const box = $("aResult");
+    if (r.cl) { box.className = r.cl.cls; box.innerHTML = r.cl.html; }
+    else { box.className = ""; box.innerHTML = "<h4>No se detectó lectura</h4><p>Revisa el micrófono y repite la evaluación.</p>"; }
+    $("btnRec").classList.toggle("hidden", !A.blob);
+  }
+
+  function reportLines() {
+    const r = A.rep, nm = $("stuName").value.trim(), yn = v => v === true ? "Correcta" : "Incorrecta";
+    return [
+      "Evaluación diagnóstica de lectura - El rescate del gatito",
+      "Estudiante: " + (nm || "(sin nombre)"), "Fecha: " + r.date, "",
+      "Palabras Intentadas (PI): " + r.PI,
+      "Total de Errores (E): " + r.E,
+      "  Sustituciones / mala pronunciación: " + r.c.err.length,
+      "  Omisiones: " + r.c.omi.length,
+      "  Vacilaciones > 3 s: " + r.c.vac.length,
+      "PCPM (PI - E): " + r.PCPM,
+      "Precisión: " + r.acc + "%", "",
+      "Comprensión 1 (animal y lugar): " + yn(r.ans[0]),
+      "Comprensión 2 (qué usó Lucas): " + yn(r.ans[1]), "",
+      "Clasificación: " + (r.cl ? r.cl.t : "No se detectó lectura"),
+      r.cl ? r.cl.m : "", "",
+      "Errores: " + (r.c.err.join(", ") || "ninguno"),
+      "Omisiones: " + (r.c.omi.join(", ") || "ninguna"),
+      "Vacilaciones: " + (r.c.vac.join(", ") || "ninguna")
+    ];
+  }
+
+  function makePDF(lines) {
+    const clean = t => t.replace(/[“”]/g, '"').replace(/[’]/g, "'").replace(/[^\x20-\xFF]/g, "").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+    const rows = [];
+    lines.forEach((l, i) => {
+      if (!l) { rows.push(["", 11]); return; }
+      const sz = i === 0 ? 15 : 11; let cur = "";
+      l.split(" ").forEach(w => { if (cur && (cur + " " + w).length > 90) { rows.push([cur, sz]); cur = "  " + w; } else cur = cur ? cur + " " + w : w; });
+      rows.push([cur, sz]);
+    });
+    let y = 800, c = "BT\n";
+    rows.forEach(([t, sz]) => { if (y < 50) return; c += "/F1 " + sz + " Tf 1 0 0 1 50 " + y + " Tm (" + clean(t) + ") Tj\n"; y -= sz + 7; });
+    c += "ET";
+    const objs = [
+      "<</Type/Catalog/Pages 2 0 R>>",
+      "<</Type/Pages/Kids[3 0 R]/Count 1>>",
+      "<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>",
+      "<</Length " + c.length + ">>\nstream\n" + c + "\nendstream",
+      "<</Type/Font/Subtype/Type1/BaseFont/Helvetica/Encoding/WinAnsiEncoding>>"
+    ];
+    let out = "%PDF-1.4\n"; const off = [];
+    objs.forEach((o, i) => { off.push(out.length); out += (i + 1) + " 0 obj\n" + o + "\nendobj\n"; });
+    const x = out.length;
+    out += "xref\n0 " + (objs.length + 1) + "\n0000000000 65535 f \n" + off.map(o => String(o).padStart(10, "0") + " 00000 n \n").join("") +
+      "trailer\n<</Size " + (objs.length + 1) + "/Root 1 0 R>>\nstartxref\n" + x + "\n%%EOF";
+    const b = new Uint8Array(out.length);
+    for (let i = 0; i < out.length; i++) b[i] = out.charCodeAt(i) & 255;
+    return new Blob([b], { type: "application/pdf" });
+  }
+
+  function download(blob, name) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+  const fileBase = () => "Lectura_" + ($("stuName").value.trim() || "estudiante").replace(/\W+/g, "_");
+  $("btnPdf").addEventListener("click", () => { if (A.rep) download(makePDF(reportLines()), fileBase() + ".pdf"); });
+  $("btnRec").addEventListener("click", () => { if (A.blob) download(A.blob, fileBase() + "_voz.webm"); });
+  $("btnMail").addEventListener("click", () => {
+    if (!A.rep) return;
+    const subj = "Resultado de lectura - " + ($("stuName").value.trim() || "estudiante");
+    location.href = "mailto:" + encodeURIComponent($("evalMail").value.trim()).replace(/%40/g, "@") + "?subject=" + encodeURIComponent(subj) + "&body=" + encodeURIComponent(reportLines().join("\n"));
+  });
+
+  function resetAuto(keep) {
     stopAll();
-    A.st = []; A.p = 0; A.PI = 0; A.vac = -1; A.qi = 0; A.ans = [null, null];
+    A.st = []; A.p = 0; A.PI = 0; A.vac = -1; A.qi = 0; A.ans = [null, null]; A.micOk = false; A.micErr = false;
     $("aClock").textContent = "60"; $("aBar").style.width = "100%";
+    $("aReady").classList.remove("hidden"); $("aRun").classList.add("hidden");
+    $("insLect").classList.add("hidden");
     micMsg("🎤 Micrófono sin probar"); $("btnGo").disabled = true;
+    if (!keep) {
+      A.rep = null; A.blob = null;
+      $("repEmpty").classList.remove("hidden"); $("repBody").classList.add("hidden");
+    }
     screen(0);
   }
-  $("btnAgain").addEventListener("click", () => { resetAuto(); speak(WELCOME, null, "bienvenida"); });
-  $("btnInd").addEventListener("click", () => { screen(1); speak(INTRO, null, "indicaciones"); });
-  $("btnHear").addEventListener("click", () => speak(WELCOME, null, "bienvenida"));
-  $("voiceSel").addEventListener("change", () => speak("¡Hola, explorador! Esta es mi voz."));
+  $("btnInd").addEventListener("click", () => { screen(1); speak(MICTXT, null, "microfono"); });
 
   drawClock(); calc(); resetAuto();
 })();
